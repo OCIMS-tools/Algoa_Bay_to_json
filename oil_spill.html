@@ -1,0 +1,221 @@
+
+ 
+ {% block content %}
+ {% load static %}
+ {% load leaflet_tags %}
+
+<head>
+        {% leaflet_js plugins="ALL" %}
+        {% leaflet_css plugins="ALL" %}
+ 	<link rel="stylesheet" href="{% static 'js_folder/leaflet-sidebar.css' %}" type="text/css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.5.1/dist/leaflet.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.css">
+        <link rel="stylesheet" href="{% static 'js_folder/leaflet.timedimension.control.css' %}"/>
+	<title>Oil :) Demo</title>
+	<meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+</head>
+
+<style>
+
+    .legend ul{
+        padding: 0; list-style: none;
+    }
+    .legend li{
+        padding: 5px;
+    }
+    .legend li.p05{
+        background-color: #00FF00;
+        background-color: rgba(0, 255, 0, 0.3);
+    }
+    .legend li.p075{
+        background-color: #FFFF00;
+        background-color: rgba(255, 255, 0, 0.3);
+    }
+    .legend li.p09{
+        background-color: #FF0000;
+        background-color: rgba(255, 0, 0, 0.3);
+    }
+
+    .leaflet-container {  /* all maps */
+        width:  1800px;
+        height: 1000px;
+    }
+
+    .leaflet-sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  overflow: hidden;
+  z-index: 2000; }
+
+</style>
+
+
+  <!JS scripts for velocity function>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+  <script type="text/javascript" src="{% static 'js_folder/leaflet-sidebar2.js' %}"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/leaflet@1.5.1/dist/leaflet.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/leaflet.nontiledlayer@1.0.7/dist/NonTiledLayer.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/iso8601-js-period@0.2.1/iso8601.min.js"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.util.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.wms.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.geojson.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.player.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.control.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet-sidebar2.js' %}""js/baselayers.js"></script>
+        <script type="text/javascript" src="{% static 'js_folder/baselayers.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js_folder/leaflet-sidebar2.js' %}""js/example15.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+
+
+<body>
+
+   
+   <div id="map"></div>
+   <script type="text/javascript">
+
+L.TimeDimension.Layer.CDrift = L.TimeDimension.Layer.GeoJson.extend({
+
+    // CDrift data has property time in seconds, not in millis.
+    _getFeatureTimes: function(feature) {
+        if (!feature.properties) {
+            return [];
+        }
+        if (feature.properties.hasOwnProperty('coordTimes')) {
+            return feature.properties.coordTimes;
+        }
+        if (feature.properties.hasOwnProperty('times')) {
+            return feature.properties.times;
+        }
+        if (feature.properties.hasOwnProperty('linestringTimestamps')) {
+            return feature.properties.linestringTimestamps;
+        }
+        if (feature.properties.hasOwnProperty('time')) {
+            return [feature.properties.time * 1000];
+        }
+        return [];
+    },
+
+    // Do not modify features. Just return the feature if it intersects
+    // the time interval
+    _getFeatureBetweenDates: function(feature, minTime, maxTime) {
+        var featureStringTimes = this._getFeatureTimes(feature);
+        if (featureStringTimes.length == 0) {
+            return feature;
+        }
+        var featureTimes = [];
+        for (var i = 0, l = featureStringTimes.length; i < l; i++) {
+            var time = featureStringTimes[i]
+            if (typeof time == 'string' || time instanceof String) {
+                time = Date.parse(time.trim());
+            }
+            featureTimes.push(time);
+        }
+
+        if (featureTimes[0] > maxTime || featureTimes[l - 1] < minTime) {
+            return null;
+        }
+        return feature;
+    },
+
+});
+
+L.timeDimension.layer.cDrift = function(layer, options) {
+    return new L.TimeDimension.Layer.CDrift(layer, options);
+};
+
+var startDate = new Date();
+startDate.setUTCHours(0, 0, 0, 0);
+
+var map = L.map('map', {
+    zoom: 8,
+    fullscreenControl: true,
+    timeDimensionControl: true,
+    timeDimensionControlOptions: {
+        position: 'bottomleft',
+        autoPlay: true,
+        timeSlider: false,
+        loopButton: true,
+        playerOptions: {
+            transitionTime: 125,
+            loop: true,
+        }
+    },
+    timeDimension: true,
+    center: [39.6145, 1.99363]
+});
+
+$.getJSON('{% static "main/spill2.json" %}', function (data) {
+    var cdriftLayer = L.geoJson(data, {
+        style: function(feature) {
+            var color = "#FFF";
+            if (feature.properties.confidence == '0.9') {
+                color = "#FF0000";
+            } else if (feature.properties.confidence == '0.75') {
+                color = "#FFFF00";
+            } else if (feature.properties.confidence == '0.5') {
+                color = "#00FF00";
+            }
+            return {
+                "color": color,
+                "weight": 2,
+                "opacity": 0.4
+            };
+        }
+    });
+
+    var cdriftTimeLayer = L.timeDimension.layer.cDrift(cdriftLayer, {
+        updateTimeDimension: true,
+        updateTimeDimensionMode: 'replace',
+        addlastPoint: false,
+        duration: 'PT20M',
+    });
+    cdriftTimeLayer.addTo(map);
+    map.fitBounds(cdriftLayer.getBounds());
+
+    var cDriftLegend = L.control({
+        position: 'bottomright'
+    });
+    cDriftLegend.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'info legend');
+        div.innerHTML += '<ul><li class="p05">50% probability</li><li class="p075">75% probability</li><li class="p09">90% probability</li></ul>';
+        return div;
+    };
+    cDriftLegend.addTo(map);
+
+    map.timeDimension.on('timeload', function(data) {
+        var date = new Date(map.timeDimension.getCurrentTime());
+        if (data.time == map.timeDimension.getCurrentTime()) {
+            var totalTimes = map.timeDimension.getAvailableTimes().length;
+            var position = map.timeDimension.getAvailableTimes().indexOf(data.time);
+            map.getContainer().querySelector('.animation-progress-bar').style.width = ((position*100)/totalTimes + "%");
+            // update map bounding box
+            map.fitBounds(cdriftTimeLayer.getBounds());
+        }
+    });
+});
+
+var sorrento = L.circleMarker([39.6145, 1.99363], {
+    color: '#FFFFFF',
+    fillColor: "#f28f43",
+    fillOpacity: 1,
+    radius: 5,
+    weight: 2
+}).addTo(map);
+
+var baseLayers = getCommonBaseLayers(map); // see baselayers.js
+L.control.layers(baseLayers, {collapsed:true}).addTo(map);
+
+  </script>
+
+</body>
+
+
+ {% endblock %}

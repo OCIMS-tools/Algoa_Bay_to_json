@@ -1,0 +1,501 @@
+{% extends 'main/header.html' %}  
+ 
+ {% block content %}
+ {% load static %}
+ {% load leaflet_tags %}
+
+<head>
+
+    {% leaflet_js plugins="ALL" %}
+    {% leaflet_css plugins="ALL" %}
+       <title>Waveforecasts</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="{% static 'js_folder/leaflet.timedimension.control.css' %}"/>
+	<link rel="stylesheet" href="{% static 'js_folder/c3.css'%}" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.css">
+
+</head>
+
+<style>
+
+    .img-responsive {
+        max-width: 20%;
+        height: auto;
+        object-fit: cover;
+    }
+
+    .leaflet-container {  /* all maps */
+        width:  100vw;
+        height: 90vh;
+    }
+
+    .info {
+        padding: 6px 8px;
+        font: 14px/16px Arial, Helvetica, sans-serif;
+        color: #777;
+        background: white;
+        background: rgba(255,255,255,0.8);
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 5px;
+    }
+    .info h4 {
+        margin: 0 0 5px;
+        color: #777;
+    }
+
+    .legend {
+       line-height: 18px;
+       color: #555;
+    }
+    .legend i {
+       width: 5vw;
+       height: 5vh;
+       float: left;
+       margin-right: 0px;
+       opacity: 0.7;
+    }
+
+    .chart {
+    	width: 95vw;
+    	height: 250px;	
+    }
+
+    table{
+   border-collapse: collapse;
+		}	
+
+    th,td{
+ 	border:1px solid #000; 
+	}
+
+
+        #scoll1{
+            width: 1000px;
+            height: 190px;
+            overflow: auto;
+            overflow-y: hidden;
+            margin: 0 auto;
+            white-space: nowrap
+        }
+
+
+</style>
+
+
+
+<body>
+           
+             <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+             <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/1.3.4/chroma.min.js"></script>
+  	     <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+  	     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/leaflet@1.5.1/dist/leaflet.js"></script>
+  	     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.js"></script>
+   	     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/leaflet.nontiledlayer@1.0.7/dist/NonTiledLayer.js"></script>
+  	     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/iso8601-js-period@0.2.1/iso8601.min.js"></script>
+	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.util.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.js' %}"></script>
+ 	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.wms.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.layer.geojson.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.player.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/leaflet.timedimension.control.js' %}"></script>
+  	     <script type="text/javascript" src="{% static 'js_folder/baselayers.js' %}"></script>
+  	     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+  	     <script type="text/javascript" src="https://npmcdn.com/leaflet-geometryutil"></script>              <script type="text/javascript" src="https://mbostock.github.com/d3/d3.v2.js"></script>
+             <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+             <script type="text/javascript" src="{% static 'js_folder/c3.js'%}"></script>
+	     <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+  	     <!JS scripts for velocity function>
+             <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+             <script type="text/javascript" src="{% static 'js_folder/leaflet-velocity.js' %}"></script>
+	     <!JS script for sidebar graphs>
+	     <script src="https://rawgit.com/Turbo87/leaflet-sidebar/master/src/L.Control.Sidebar.js"></script>		
+ 		
+  <div class="divider"></div>
+  <div class="section">
+		<div class="row">
+                 <div class="col s6 push-s6 " style=" height: 50vh;"  id="map"></div>
+                 <div class="col s6 pull-s6">
+<h5 class="center-align">Description</h5>
+<p> A new wave forecasting model for the Cape Peninsula, this model... You can see the map of wind and wave parameters here: <a href="http://134.209.120.89/waveforecast/"><b>Cape Peninsula charts</b></a>
+  The map shows the wave height,
+ you can add the  wave direction and wind direction by clicking on the layer box in the top right. Click on the points on the map to would like too see as bar graphs below</p></div>
+		</div>
+  </div>
+  <div class="divider"></div>
+  <div class="section scrollable">
+		<h5 class="center-align">Wave Metrics</h5>
+    	        <div class="row">
+		  <div class="left-align" id="chart" style="height: 250px; width: 120vw"></div>
+		</div>
+                <div class="row">
+                 <div class="left-align" id="chart2" style="height: 250px; width: 120vw"></div>
+                </div>
+		<div class="row">
+		 <div class="left-align col s12" id="chart3" style="height: 250px; width: 120vw"></div>
+		</div>
+		    <!--<table class="countriesTable" style="width: 50vw;" >
+		      <thead>
+          		<tr><th>Date</th><th>Wave direction</th>
+      			</thead>
+      			<tbody> </tbody>-->
+  <div class="divider"></div>
+  <div class="section">
+                <h5 class="center-align">Wind Metrics</h5>
+                <div class="row">
+                 <div class="col s5 push-s6" id="chart" style="height: 250px;"></div>
+                 <div class="col s5 pull-s4" id="chart" style="height: 250px;"></div>
+                </div>
+  </div>
+
+         		
+	
+		
+	        <!--<div class="row">
+		 <div class="col s8 push-s4 " style=" height: 50vh;"  id="map"></div>
+		 <div class="col s4 pull-s8">Description...</div>
+      		   <div class="divider"></div>
+                 <div class="col s6 pull-s6" style="height: 250px;">Select charts by clicking on the markers</div>
+                 <div class="col s6 push-s6" id="chart1" style="height: 250px;"></div>
+		</div>-->
+		
+
+              <script type="text/javascript">
+        
+
+                var actualInterval = 1 ;
+                var baseIndex = 0;
+                var dataPeriod = "PT" + (actualInterval) + "H";
+                var currentBaseName = 'wave_dirc_{h}h';
+                var currentName = '';
+                var currentArray = [];
+
+
+
+
+
+                var Esri_WorldImagery = L.tileLayer(
+                                "http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                          );
+
+
+
+
+                var map = L.map("map", {
+                                zoomSnap:0.1,
+                                zoom: 10.5,
+                                layers:    [Esri_WorldImagery],
+                                fullscreenControl: true,
+                                //timeDimensionControl: true,
+                                //timeDimensionControlOptions: {
+                                //        position: 'bottomleft',
+                                //        autoPlay: true,
+                                //        playerOptions: {
+                                //                        transitionTime: 2000,
+                                //                        loop: true,
+                                //        }
+                                //},
+                                timeDimension: true,
+                                timeDimensionOptions: {
+                                        period: "PT180M",
+                                },
+                                center: [-33.9,18.4]
+
+                         });
+
+                      var overlayMaps = {
+                          "Satelite": Esri_WorldImagery,
+
+                      };
+
+
+                     var layerControl = L.control.layers(null,overlayMaps, {collapsed:true});
+			 layerControl.addTo(map)
+
+
+L.TimeDimension.Layer.CDrift = L.TimeDimension.Layer.GeoJson.extend({
+
+    // CDrift data has property time in seconds, not in millis.
+    _getFeatureTimes: function(feature) {
+
+            if (feature.properties.hasOwnProperty('time')) {
+                return [feature.properties.time * 1000];
+            }
+            return [];
+        },
+
+    // Do not modify features. Just return the feature if it intersects
+    // the time interval
+    _getFeatureBetweenDates: function(feature, minTime, maxTime) {
+            var featureStringTimes = this._getFeatureTimes(feature);
+            if (featureStringTimes.length == 0) {
+                return feature;
+            }
+            var featureTimes = [];
+            for (var i = 0, l = featureStringTimes.length; i < l; i++) {
+                var time = featureStringTimes[i]
+                if (typeof time == 'string' || time instanceof String) {
+                    time = Date.parse(time.trim());
+                }
+                featureTimes.push(time);
+            }
+
+            if (featureTimes[0] > maxTime || featureTimes[l - 1] < minTime) {
+                return null;
+            }
+            return feature;
+        },
+
+    });
+
+
+L.timeDimension.layer.cDrift = function(layer, options) {
+    return new L.TimeDimension.Layer.CDrift(layer, options);
+};
+
+var startDate = new Date();
+startDate.setUTCHours(0, 0, 0, 0);
+
+function onEachFeature_wave_height(feature, layer) {
+
+   var popupcontent = "<b>Wave height [meters] :</b> " + feature.properties.title.toString()
+
+   layer.bindPopup(popupcontent)
+
+}
+
+function style_contour(feature) {
+   return {
+                fillColor: feature.properties['fill'],
+                fillOpacity: feature.properties['fill-opacity'],
+                color: feature.properties['stroke'],
+                weight: feature.properties['stroke-width'],
+                opacity: feature.properties['stroke-opacity']
+   };
+}
+
+
+
+$.getJSON('{% static "main/ocean_motion_wave_height.geojson" %}', function (data) {
+     var cdriftLayer = L.geoJson(data, {
+        style:style_contour, onEachFeature:onEachFeature_wave_height
+    });
+
+    var cdriftTimeLayer = L.timeDimension.layer.cDrift(cdriftLayer,  {
+        updateTimeDimension: true,
+        waitForReady: true,
+        duration: 'PT100M',
+    });
+
+    layerControl.addOverlay(cdriftTimeLayer, "Wave height");
+    cdriftTimeLayer.addTo(map);
+    map.fitBounds(cdriftLayer.getBounds());
+
+
+});
+
+
+var currentLayerGroup = new L.layerGroup([], {});
+currentArray.length = map.timeDimension._availableTimes.length;
+
+var actualTimeIndex = map.timeDimension._currentTimeIndex;
+
+// load data (u, v grids) from weather.openportguide.de
+layerControl.addOverlay(currentLayerGroup, 'Wave direction');
+updateLayer(currentArray[actualTimeIndex]);
+
+window.setInterval(function() { //check if time index changed
+if (actualTimeIndex != map.timeDimension._currentTimeIndex) {
+actualTimeIndex = map.timeDimension._currentTimeIndex;
+updateLayer(currentArray[actualTimeIndex]);
+}
+},100);
+
+function updateLayer(Layer){ //updates the actual layer
+currentLayerGroup.clearLayers();
+currentName = currentBaseName.replace(/{h}/g, (actualTimeIndex)); /*- baseIndex) * actualInterval);*/
+
+$.getJSON("{% get_static_prefix %}main/"+currentName+".json", function (data) {
+this[currentName] = L.velocityLayer({
+          displayValues: true,
+          displayOptions: {
+
+            displayPosition: "bottomleft",
+            displayEmptyString: "No wave data"
+          },
+          data: data,
+          maxVelocity: 0.6,
+          opacity: 0.05, // layer opacity, default 0.97
+          velocityScale: 0.01, // arbitrary default 0.005
+          colorScale: ['#FFFFFF'],
+});
+
+currentLayerGroup.addLayer(this[currentName]);
+currentArray[actualTimeIndex] = currentLayerGroup.getLayer(currentLayerGroup.getLayerId(this[currentName]));
+function checklayer(Layer){
+       if (Layer.name == 'Wave direction'){
+       currentLayerGroup.addTo(map);
+       }
+       }
+});
+}
+
+
+
+
+
+		var markerLayer;
+
+ 		      function onEachFeature(feature, layer) {
+
+			        // Create div with class name highchart
+        			//var div = L.DomUtil.create('div', 'highchart');
+
+        		//layer.bindPopup(div, { maxWidth: "80vw"});	
+
+			layer.on('click',function(e){
+
+                           var popupContent = c3.generate({
+    				bindto: '#chart',
+    				title: {
+  				text:feature.properties.name
+				},
+    				data: {
+				  type: 'bar',
+				  x: 'x',
+                                  xFormat: '%Y/%m/%d %H:%M:%S', // how the date is parsed
+     				   columns: [
+      				    feature.properties.wave_height,
+				    feature.properties.time,
+     				   ],
+				labels: true
+   			        },
+				axis : {
+				  y : {				  		   
+				    label: {
+				      text: 'Wave height',
+				      position: 'outer-middle'
+				    }
+				  },
+                            	  x : {
+          			   type : 'timeseries',
+           			   tick: {
+             			     format:'%a-%H:%M'
+            			   }
+      				  }
+   				}
+			  });
+                        	
+			var popupContent1 = c3.generate({
+                                bindto: '#chart3',
+                                title: {
+                                text:feature.properties.name
+                                },
+                                data: {
+				  type: 'bar',
+                                  x: 'x',
+                                  xFormat: '%Y/%m/%d %H:%M:%S', // how the date is parsed
+                                   columns: [
+                                    feature.properties.period,
+                                    feature.properties.time,
+                                   ],
+				  labels: true        			   
+                                },
+                                   color: {
+                                        pattern: ['#ff7f0e']
+                                   },
+                                axis : {
+                                  y : {
+                                    label: {
+                                      text: 'Wave period',
+                                      position: 'outer-middle'
+                                    }
+                                  },
+                                  x : {
+                                   type : 'timeseries',
+                                   tick: {
+                                     format:'%a-%H:%M'
+                                   }
+                                  }
+                                }
+                          });
+
+            		
+      
+		      
+      			  var chart = c3.generate({
+    				bindto: '#chart2',
+    				title: {
+  				text: feature.properties.name
+				},
+    				data: {
+    				        type: 'bar',
+				  x: 'x',
+				  xFormat: '%Y/%m/%d %H:%M:%S', // how the date is parsed
+     				   columns: [		
+      				    feature.properties.direction,
+				    feature.properties.time,
+     				   ],
+			     colors: {
+            				Wave_direction: '#ff0000'
+			             },
+ labels:{
+    format: function (v, id, i, j) {
+        if (v < 10)
+            return v;
+        if (v < 90 & v > 0)
+            return "NE";
+        else if (v < 180 & v > 90)
+            return "SE";
+        else if (v < 270 & v > 180)
+            return "SW";
+        else if (v < 360 & v > 270)
+            return "NW";
+        else
+            return v;
+    }
+}
+   			        },
+				axis : {
+        			  x : {
+          			   type : 'timeseries',
+           			   tick: {
+             			     format:'%m/%d'
+            			   }
+      				  },
+      				  y: {
+            label: {
+              text: 'Wave direction',
+              position: 'outer-middle'
+            }
+          },
+   				},
+   				
+   				
+			  });
+               		
+                      
+
+
+
+			})
+                    
+
+                      }
+
+                      $.getJSON('{% static "main/timeseries_test.json" %}', function (data) {
+                      // Define the geojson layer and add it to the map
+                      markerLayer=L.geoJson(data, {onEachFeature: onEachFeature}).addTo(map);
+                      //layerControl.addOverlay(markerLayer, "Timeseries at location")
+                      });                       
+		     
+                               
+                </script>
+               
+</body>
+
+ {% endblock %}
+
+
